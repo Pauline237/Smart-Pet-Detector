@@ -16,6 +16,7 @@ import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -120,8 +121,27 @@ USE_I18N = True
 USE_TZ = True
 
 
+# Add this to your settings.py
+import os
+
+ML_MODEL_CONFIG = {
+    'MODEL_DIR': os.path.join(BASE_DIR, 'backend', 'ml_model', 'saved_model'),
+    'DEFAULT_MODEL': 'pet_classifier_model.h5',
+    'INPUT_SIZE': (224, 224),
+}
+
+# Create directory if it doesn't exist
+os.makedirs(ML_MODEL_CONFIG['MODEL_DIR'], exist_ok=True)
 
 
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow info messages
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # Disable GPU detection
+
+# Add this if using Keras
+import tensorflow as tf
+tf.config.set_visible_devices([], 'GPU')  # Hide GPUs from TensorFlow
 
 # Database Configuration
 # Using dj_database_url for flexible database URL configuration

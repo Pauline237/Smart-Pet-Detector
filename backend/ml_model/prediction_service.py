@@ -236,3 +236,46 @@ class PredictionService:
 def get_prediction_service():
     """Factory function to get the PredictionService singleton instance."""
     return PredictionService()
+
+
+def _initialize(self):
+    """Initialize with comprehensive error handling"""
+    try:
+        model_dir = os.path.join(settings.BASE_DIR, 'backend', 'ml_model', 'saved_model')
+        os.makedirs(model_dir, exist_ok=True)  # Ensure directory exists
+        
+        # Look for any .h5 or .keras model files
+        model_files = [f for f in os.listdir(model_dir) 
+                     if f.endswith(('.h5', '.keras'))]
+        
+        if not model_files:
+            # Provide a default model if none exists
+            default_model = os.path.join(model_dir, 'pet_classifier_model.h5')
+            if not os.path.exists(default_model):
+                raise FileNotFoundError(
+                    f"No model files found in {model_dir}. "
+                    "Please place a trained model file in this directory."
+                )
+            model_files = [default_model]
+        else:
+            # Sort by modification time (newest first)
+            model_files.sort(key=lambda f: os.path.getmtime(
+                os.path.join(model_dir, f)), reverse=True)
+            default_model = os.path.join(model_dir, model_files[0])
+        
+        self.model_path = default_model
+        self.model_version = os.path.splitext(os.path.basename(default_model))[0]
+        
+        logger.info(f"Loading model from {self.model_path}")
+        self.model = tf.keras.models.load_model(self.model_path)
+        
+        # Verify model can predict
+        test_input = np.random.rand(1, *settings.ML_MODEL_CONFIG['INPUT_SIZE'], 3)
+        self.model.predict(test_input)
+        
+        logger.info(f"Model loaded successfully: {self.model_version}")
+
+    except Exception as e:
+        logger.error(f"Failed to initialize model: {str(e)}")
+        self.model = None
+        raise RuntimeError(f"Could not initialize prediction service: {str(e)}")
